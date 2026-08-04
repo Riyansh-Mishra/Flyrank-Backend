@@ -69,3 +69,30 @@ This marked every task as completed — confirmed instantly through `GET /tasks`
 
 - Week 2: data was in-memory only — restarting the server reset all tasks. That was intentional, to show the limits of memory-based storage.
 - Week 3: data now persists in SQLite (`tasks.db`) — restarting the server no longer loses data. Tested by creating tasks, restarting, and confirming they're still present via both the API and DB Browser.
+
+## Database (Week 1 · A3 — Postgres in Docker)
+
+**Why Postgres + Docker?** SQLite was a single file — fine for small local projects, but real backends (including FlyRank's) run PostgreSQL as its own server. Docker lets you run that server without installing or configuring Postgres directly on your machine — the exact same container works identically on any computer.
+
+**How to run the whole stack:**
+```bash
+cp .env.example .env
+docker compose up
+```
+This starts both the API and the Postgres database together. On first run, the `tasks` table is created and seeded automatically.
+
+**Environment variables** (see `.env.example`): `DATABASE_URL` — the connection string the app uses to reach Postgres.
+
+**Example query:**
+```sql
+SELECT * FROM tasks;
+```
+Returns all seeded and created tasks, confirmed live in psql.
+
+![Postgres data via psql](./postgres-screenshot.png)
+
+## Notes (updated)
+
+- Week 2: in-memory storage, lost on restart.
+- Week 3 (A2): SQLite file, survives restarts, single file on disk.
+- Week 1 (A3): PostgreSQL running in Docker, survives full container restarts thanks to a named volume (`taskdata`). Tested by creating a task, running `docker compose down` (removes containers) and `docker compose up` again — task was still present.
