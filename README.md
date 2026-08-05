@@ -96,3 +96,48 @@ Returns all seeded and created tasks, confirmed live in psql.
 - Week 2: in-memory storage, lost on restart.
 - Week 3 (A2): SQLite file, survives restarts, single file on disk.
 - Week 1 (A3): PostgreSQL running in Docker, survives full container restarts thanks to a named volume (`taskdata`). Tested by creating a task, running `docker compose down` (removes containers) and `docker compose up` again — task was still present.
+
+## Authentication (Week 2 · A4 — Supabase Auth)
+
+**Why Supabase Auth?** Rolling your own password hashing and token signing is risky and unnecessary — Supabase (an Identity Provider) handles account storage, password hashing, and signing JSON Web Tokens (JWTs) for you. This app never touches a raw password beyond forwarding it to Supabase, and never stores one.
+
+**How it works:** a user signs up or logs in through Supabase, which returns a signed access token (JWT). The client sends that token on every request to a protected route via the `Authorization: Bearer <token>` header. The server asks Supabase to verify the token before running the route — this is handled by a single reusable guard (`get_current_user`), applied to every protected route via FastAPI's `Depends(...)`.
+
+**Setup:** create a free project at [supabase.com](https://supabase.com), then under **Project Settings → API** copy your Project URL and `anon` public key (never the `service_role` key) into your own `.env` file:
+
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+
+For local testing, also turn off "Confirm email" under **Authentication → Sign In / Providers → Email**, so test signups can log in immediately.
+
+## Endpoints (updated)
+
+| Method | Path                    | Description                  | Auth required | Success | Errors        |
+|--------|-------------------------|-------------------------------|----------------|---------|---------------|
+| GET    | `/`                     | API info                      | No             | 200     | —             |
+| GET    | `/health`               | Health check                  | No             | 200     | —             |
+| GET    | `/public/info`          | Public info                   | No             | 200     | —             |
+| POST   | `/auth/signup`          | Create a new account          | No             | 201     | 400           |
+| POST   | `/auth/login`           | Log in, get a JWT             | No             | 200     | 400, 401      |
+| POST   | `/auth/logout`          | End the session                | Yes            | 204     | 401           |
+| GET    | `/protected/profile`    | Get your own user info         | Yes            | 200     | 401           |
+| GET    | `/protected/dashboard`  | Protected demo route           | Yes            | 200     | 401           |
+| GET    | `/tasks`                | List all tasks                 | No             | 200     | —             |
+| GET    | `/tasks/{id}`           | Get one task                   | No             | 200     | 404           |
+| POST   | `/tasks`                | Create a task                  | No             | 201     | 400           |
+| PUT    | `/tasks/{id}`           | Update a task                  | No             | 200     | 400, 404      |
+| DELETE | `/tasks/{id}`           | Delete a task                  | No             | 204     | 404           |
+| GET    | `/stats`                | Task counts                    | No             | 200     | —             |
+
+## Swagger UI with bearer auth
+
+After logging in, paste the returned `access_token` into Swagger's **Authorize** button (padlock icon, top right of `/docs`). Once authorized, protected routes can be called directly from the browser with no manual headers needed:
+
+![Swagger authorized request to /protected/profile](./swagger-auth-screenshot.png)
+
+## Notes (updated)
+
+- Week 2 (A1): in-memory storage, lost on restart.
+- Week 3 (A2): SQLite file, survives restarts.
+- Week 1 (A3): PostgreSQL in Docker, survives full container restarts via a named volume.
+- Week 2 (A4): added authentication via Supabase — signup, login, logout, and protected routes guarded by a single reusable token-verification dependency. Passwords are never stored or hashed by this app; Supabase handles that entirely.!
